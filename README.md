@@ -1,8 +1,8 @@
 # Spin the Dial
 
-A Next.js app: connect Spotify, build a pool of artists you actually listen to, spin a dial, and
-launch that artist in Spotify. Everything happens in the browser — there is no backend, no
-database, and no token proxy.
+A Next.js app: connect Spotify — or hand it a Last.fm username — build a pool of artists you
+actually listen to, spin a dial, and launch that artist in Spotify. Everything happens in the
+browser: no backend, no database, no token proxy, and no secrets of any kind.
 
 ```sh
 npm install
@@ -20,7 +20,9 @@ than to `localhost`. Use the URL exactly as printed.
    - `http://127.0.0.1:3000/` for local development
    - or your deploy URL, e.g. `https://spin-the-dial.vercel.app/`
 
-   The app prints the exact URI to paste, under "Redirect URI to register".
+   It is just the URL the app is served from — origin and path, nothing else — because that is
+   what the app sends as `redirect_uri`. Copy it from the address bar if in doubt. The app no
+   longer displays it, so a mismatch shows up as Spotify declining the sign-in.
 4. API used: **Web API**. Save.
 5. While the app is in Development Mode, add your own Spotify account under **User Management**.
 
@@ -45,9 +47,45 @@ account. Tokens and history never leave their browser, and no user sees another 
 Two overrides are honoured automatically, both useful for testing a second app:
 `<meta name="spotify-client-id" content="...">` in the page, or `?client_id=...` in the URL.
 
-**Development Mode limit:** until Spotify approves an extended-quota request, only accounts you
-add under **User Management** (25 max) can sign in — everyone else gets a 403, which the app
-reports plainly. Extended quota removes the allowlist.
+**Development Mode limit — read this before sharing the link.** Only accounts you add by hand
+under **User Management** can sign in. Everyone else gets a 403, which the app reports plainly.
+Since February 2026 that ceiling is **5 users** for newly created apps (apps created before
+9 March 2026 keep their old, higher count), and the app stops working if the owner's Spotify
+**Premium** subscription lapses.
+
+Extended Quota Mode is what removes the allowlist, but since 15 May 2025 it is closed to
+individuals: it needs a legally registered business, a launched service, **250k monthly active
+users**, and availability in key markets. Treat it as unavailable for a personal project.
+
+So one shared app cannot serve arbitrary visitors, and this one does not try to. It runs as an
+invite-only app: add the people you want under **User Management**, using the email on their
+Spotify account. Anyone else who presses Connect gets told, in as many words, that their account
+needs adding and who to ask — the app detects the all-requests-403 shape specifically rather than
+dumping API detail at them.
+
+**The way round it is Last.fm** (below). It has no allowlist, no approval step, and no OAuth, so
+anyone with a public Last.fm profile can use the app immediately — no involvement from you.
+
+Failing that, the per-person route below still works: someone brings their own Client ID and is
+the sole allowlisted user of their own app. That needs Premium and a few minutes in the developer
+dashboard, so it suits a technical friend, not a stranger following a link.
+
+## 3. Add Last.fm (optional, but it removes the allowlist problem)
+
+Create a key at [last.fm/api/account/create](https://www.last.fm/api/account/create) and set:
+
+```sh
+NEXT_PUBLIC_LASTFM_API_KEY=...
+```
+
+That is the only variable it needs, and it is public by design like the Client ID. Last.fm also
+issues a **shared secret** — this app neither uses nor wants it. The secret is only required for
+`auth.getSession`, meaning private profiles and scrobbling, which need requests signed on a
+server. Reading a public profile takes a key and a username, and Last.fm's API sends
+`Access-Control-Allow-Origin: *`, so the call goes straight from the browser and the app stays
+backend-free. Never put the secret in a `NEXT_PUBLIC_` variable: those ship to the browser.
+
+Unset the key and the Last.fm option simply isn't offered. Set either provider, or both.
 
 ### Or paste it per-person
 
@@ -64,6 +102,36 @@ Leave the variable unset and the first screen asks for the ID under
   Refresh happens automatically ~30s before expiry and on any `401`. Because the refresh token
   is also memory-only, a page reload means signing in again — that's the intended trade-off.
 - **Scopes:** `user-top-read`, `user-read-recently-played`.
+- **Last.fm as a second source:** `user.getTopArtists` over `1month` / `6month` / `overall` plus
+  `user.getRecentTracks`, de-duplicated by name because Last.fm's `mbid` is often missing. Those
+  periods line up with Spotify's short / medium / long term, so the recency flags, the forgotten
+  filter and the round counter all behave identically. A username is remembered in `localStorage`
+  under `spinthedial.lastfmUser`; it is not a credential.
+- **Artist images always come from Spotify**, whichever source filled the pool. Spotify's own
+  history covers most of it, but two cases arrive without an image: artists seen only in
+  recently-played (the simplified artist object has none) and everything from Last.fm (their API
+  returns a placeholder star). Those are looked up through Spotify's **oEmbed** endpoint, which
+  is public, CORS-open and needs no token — `/v1/search` would need OAuth, and Client Credentials
+  would need a server to hold the client secret. oEmbed only takes an artist ID, so Last.fm
+  artists are resolved via their MusicBrainz ID first, which is why `mbid` is carried through the
+  pool (96–98% of Last.fm artists have one). oEmbed hands back a small thumbnail, but Spotify
+  encodes the size in the image path, so the largest variant is requested and *verified by
+  loading it* before use — a wrong guess keeps the thumbnail rather than breaking the card.
+  MusicBrainz answers 503 when pushed, so lookups are serialised at ~1/second, retried once, and
+  each mbid→Spotify-ID mapping is cached in `localStorage` (it never changes), meaning an artist
+  costs MusicBrainz one request ever rather than one per session.
+- **Coverage is about 70% on a long-tail library**, and higher on a mainstream one. The limit is
+  MusicBrainz: obscure artists often have no Spotify relation at all (Falloch, for one, has nine
+  relations and none of them Spotify), and no chain of public databases fixes that — Wikidata and
+  Deezer links are missing too. Closing it would mean Spotify's own `/v1/search`, which needs a
+  token, which needs a server to hold the client secret. Deliberately not done: the app stays
+  static and secret-free, and a miss falls back to a patterned card instead.
+- **The no-photo card is patterned from the artist's name** — angle and stripe rhythm derived
+  from a small hash, so it is stable for that artist and different from the next. A missing image
+  then reads as a designed sleeve rather than a failure.
+- **What Last.fm still cannot give:** genres, since tags cost one request per artist. The chip
+  row hides itself when nothing is tagged. Play artist opens a Spotify *search* for the name,
+  since Last.fm hands over no Spotify IDs.
 - **Artist pool:** `/me/top/artists` for `short_term`, `medium_term`, `long_term` (50 each)
   plus artists extracted from `/me/player/recently-played` (50 tracks), de-duplicated by
   artist ID. Requests run in parallel; partial failures are reported and the app spins on
@@ -80,8 +148,11 @@ Leave the variable unset and the first screen asks for the ID under
 - **Spin:** uniform random pick from the artists not yet drawn this round, revealing name,
   image, genres, and how recently they turned up in your history.
 - **Play artist** → opens `spotify:artist:{id}`, their page in Spotify, where you press play.
-  The reveal needs nothing beyond the pool it already has, so no per-artist request is made and
-  there is no second call left to fail.
+  Last.fm gives no Spotify IDs, but the image lookup already establishes one for most artists, so
+  that ID drives this button too and the real artist page opens either way. Only when no ID can be
+  found does it fall back to a name search — and that fallback is **web-only on purpose**: the
+  desktop client accepts `spotify:search:<query>` but ignores the query and lands on its
+  recent-searches page, so a target with no usable `spotify:` URI skips the client hop entirely.
 - **Links:** desktop tries the `spotify:` URI and falls back to `open.spotify.com` after
   1.4s if the page is still visible (a hidden page means the app took over); mobile goes
   straight to the `open.spotify.com` URL, which universal-links into the app. If a pop-up
@@ -131,8 +202,10 @@ public/
   apple-touch-icon.png        180x180, iOS takes no SVG
 lib/
   spotify.ts                  PKCE, token handling, Web API client
+  lastfm.ts                   public-profile reads, no auth and no secret
+  artist-image.ts             official Spotify images via oEmbed, no token needed
   pool.ts                     pool building, filtering, genre chips
-  config.ts                   where the Client ID comes from
+  config.ts                   where the Client ID and Last.fm key come from
   browser.ts                  reduced motion, framing, Spotify hand-off
   audio.ts                    the tick track under a spin
   settings.ts                 spin duration
@@ -151,8 +224,9 @@ to Google at runtime and no layout shift.
 Import the repo and deploy — the framework is detected, every route prerenders, and there are no
 server routes or secrets to configure. Then two things:
 
-**1. Set `NEXT_PUBLIC_SPOTIFY_CLIENT_ID`** in Project → Settings → Environment Variables. It is
-inlined at build time, so setting it needs a redeploy to take effect. Nothing else is required:
+**1. Set `NEXT_PUBLIC_SPOTIFY_CLIENT_ID`** in Project → Settings → Environment Variables, and
+`NEXT_PUBLIC_LASTFM_API_KEY` too if you want the Last.fm option. Both are inlined at build time,
+so setting either needs a redeploy to take effect. Nothing else is required:
 `NEXT_PUBLIC_SITE_URL` is optional, because `lib/site.ts` falls back to Vercel's own
 `VERCEL_PROJECT_PRODUCTION_URL` / `VERCEL_URL`, which are injected automatically. Set it anyway
 once you put a custom domain in front, so the canonical link points at the domain you want.

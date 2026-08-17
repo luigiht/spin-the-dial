@@ -9,6 +9,13 @@ import { CID_KEY } from './spotify';
 export const ENV_CLIENT_ID = (process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID ?? '').trim();
 
 /**
+ * Last.fm API key for the deploy. Public by design, like the Spotify Client ID: read-only
+ * calls carry it in the query string. Unset means the Last.fm option is simply not offered.
+ * No shared secret — see lib/lastfm.ts.
+ */
+export const LASTFM_API_KEY = (process.env.NEXT_PUBLIC_LASTFM_API_KEY ?? '').trim();
+
+/**
  * The deploy-wide ID, including the two browser-only overrides:
  *   <meta name="spotify-client-id" content="..."> and ?client_id=... in the URL.
  * With any of these set, visitors never see the paste field — they just sign in.
@@ -39,5 +46,24 @@ export function rememberClientId(id: string): void {
     localStorage.setItem(CID_KEY, id);
   } catch {
     /* private mode — the ID just won't be remembered */
+  }
+}
+
+const LFM_USER_KEY = 'spinthedial.lastfmUser';
+
+/** A username is not a credential, so it is worth remembering between visits. */
+export function savedLastfmUser(): string {
+  try {
+    return localStorage.getItem(LFM_USER_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+export function rememberLastfmUser(user: string): void {
+  try {
+    localStorage.setItem(LFM_USER_KEY, user);
+  } catch {
+    /* private mode — the username just won't be remembered */
   }
 }

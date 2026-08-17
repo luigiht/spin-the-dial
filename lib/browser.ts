@@ -1,6 +1,6 @@
 /* Small browser probes and the Spotify hand-off. All of this needs `window`. */
 
-import { redirectUri } from './spotify';
+import { redirectUri, type LaunchTarget } from './spotify';
 
 export function prefersReducedMotion(): boolean {
   return !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -55,23 +55,24 @@ function openTab(url: string): void {
 }
 
 /**
- * Hand off to Spotify. Desktop tries the `spotify:` URI and falls back to the web
- * player after 1.4s if nothing took over; mobile goes straight to the URL, which
- * universal-links into the app.
+ * Hand off to Spotify. Desktop tries the `spotify:` URI and falls back to the web player after
+ * 1.4s if nothing took over; mobile goes straight to the URL, which universal-links into the
+ * app. A target with no `uri` goes straight to the web too — some `spotify:` routes misbehave,
+ * and there is no point handing the client something it will mishandle.
  */
-export function openSpotify(uri: string, webUrl: string): void {
-  if (isMobile() || isFramed()) {
-    openTab(webUrl);
+export function openSpotify({ uri, web }: LaunchTarget): void {
+  if (!uri || isMobile() || isFramed()) {
+    openTab(web);
     return;
   }
   const fallback = window.setTimeout(() => {
     // A hidden page means the desktop app took over; otherwise the URI went nowhere.
-    if (!document.hidden) openTab(webUrl);
+    if (!document.hidden) openTab(web);
   }, 1400);
   try {
     window.location.href = uri;
   } catch {
     window.clearTimeout(fallback);
-    openTab(webUrl);
+    openTab(web);
   }
 }

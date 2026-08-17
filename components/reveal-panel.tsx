@@ -1,6 +1,7 @@
 'use client';
 
 import type { DialModel } from '@/hooks/use-spin-the-dial';
+import { placeholderPattern } from '@/lib/placeholder';
 
 import styles from './spin-the-dial.module.css';
 
@@ -15,15 +16,19 @@ export function RevealPanel({ reveal, actions }: RevealPanelProps) {
   return (
     <section className={styles.panel}>
       <div
-        className={styles.card}
-        style={imageUrl ? { backgroundImage: `url("${imageUrl}")` } : undefined}
+        className={`${styles.card} ${imageUrl ? styles.cardPhoto : ''}`}
+        style={{
+          backgroundImage: imageUrl
+            ? `url("${imageUrl}")`
+            : placeholderPattern(artist?.name ?? ''),
+        }}
       >
-        <span className={`${styles.cardLabel} ${imageUrl ? styles.cardLabelHidden : ''}`}>Artist image</span>
         <h2 className={styles.artistName}>{artist?.name ?? ''}</h2>
       </div>
 
       <div className={styles.meta}>
-        <span className={styles.genres}>{reveal.genresLine}</span>
+        {/* Untagged artists — everything from Last.fm — just get no genre line. */}
+        {reveal.genresLine ? <span className={styles.genres}>{reveal.genresLine}</span> : null}
         <span className={styles.recency}>{reveal.recencyLine}</span>
       </div>
 

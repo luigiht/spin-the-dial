@@ -2,9 +2,19 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { resolveArtist, type ResolvedArtist } from '@/lib/artist-lookup';
 import { playSpinClicks } from '@/lib/audio';
 import { cleanUrl, isFramed, openSpotify, prefersReducedMotion } from '@/lib/browser';
-import { configuredClientId, ENV_CLIENT_ID, rememberClientId, savedClientId } from '@/lib/config';
+import {
+  configuredClientId,
+  ENV_CLIENT_ID,
+  LASTFM_API_KEY,
+  rememberClientId,
+  rememberLastfmUser,
+  savedClientId,
+  savedLastfmUser,
+} from '@/lib/config';
+import { loadLastfmPool } from '@/lib/lastfm';
 import {
   artistImage,
   buildPool,
@@ -17,8 +27,8 @@ import { SPIN_DURATION_MS } from '@/lib/settings';
 import {
   artistTargets,
   authorizeUrl,
+  searchTargets,
   exchangeCode,
-  redirectUri,
   SpotifySession,
   takePkceValues,
   type RecentlyPlayedResponse,
@@ -26,6 +36,9 @@ import {
 } from '@/lib/spotify';
 
 export type Phase = 'setup' | 'loading' | 'dial' | 'reveal';
+
+/** Where the current pool came from. `null` means nothing is connected. */
+export type Source = 'spotify' | 'lastfm';
 
 export interface GenreChip {
   label: string;
@@ -36,10 +49,10 @@ interface State {
   clientId: string;
   /** A deploy-wide ID is in play, so no one needs to paste anything. */
   configured: boolean;
-  redirectUri: string;
   phase: Phase;
   error: string;
-  signedIn: boolean;
+  source: Source | null;
+  lastfmUser: string;
   pool: PoolArtist[];
   artist: PoolArtist | null;
   spinning: boolean;
@@ -54,10 +67,10 @@ interface State {
 const INITIAL: State = {
   clientId: ENV_CLIENT_ID,
   configured: !!ENV_CLIENT_ID,
-  redirectUri: '',
   phase: 'setup',
   error: '',
-  signedIn: false,
+  source: null,
+  lastfmUser: '',
   pool: [],
   artist: null,
   spinning: false,
@@ -91,11 +104,41 @@ export function useSpinTheDial() {
   const rollTimer = useRef<number | undefined>(undefined);
   const started = useRef(false);
 
+  /* What we worked out about an artist after the fact, keyed by pool id: the Spotify ID (so
+   * Play artist can open the artist rather than a search) and the official image. Spotify's own
+   * history supplies images for most artists; this covers the rest, and all of Last.fm. */
+  const [found, setFound] = useState<Record<string, ResolvedArtist>>({});
+  const lookups = useRef(new Set<string>());
+
   const patch = useCallback((next: Partial<State>) => {
     setState((s) => ({ ...s, ...next }));
   }, []);
 
   const fail = useCallback((error: string) => patch({ error }), [patch]);
+
+  /** Work out an artist's Spotify ID and image, for artists that arrived without them. */
+  const lookUp = useCallback((artist: PoolArtist) => {
+    // Nothing to learn: the source gave us both already.
+    if (artist.spotifyId && artistImage(artist)) return;
+    if (lookups.current.has(artist.id)) return; // in flight, or already attempted
+    lookups.current.add(artist.id);
+
+    void resolveArtist(artist).then((resolved) => {
+      if (resolved.spotifyId || resolved.image) {
+        setFound((current) => ({ ...current, [artist.id]: resolved }));
+        return;
+      }
+      // Could have been a transient MusicBrainz 503 rather than a genuine miss, so let a later
+      // spin of the same artist try again instead of writing it off for the session.
+      lookups.current.delete(artist.id);
+    });
+  }, []);
+
+  /** A new pool means the old lookups are meaningless. */
+  const resetLookups = useCallback(() => {
+    lookups.current.clear();
+    setFound({});
+  }, []);
 
   /* ---------------------------------------------------------------- history */
 
@@ -113,29 +156,36 @@ export function useSpinTheDial() {
       spotify.get<RecentlyPlayedResponse>('/me/player/recently-played?limit=50'),
     ]);
 
-    const { pool, failed, firstError } = buildPool(results);
+    const { pool, failed, firstError, firstStatus } = buildPool(results);
 
     if (!pool.length) {
-      patch({
-        phase: 'setup',
-        error:
-          failed === results.length
-            ? `Every Spotify request failed (${firstError}). Nothing to spin yet.`
-            : 'Spotify returned no listening history for this account yet. Play some music, then connect again.',
-      });
+      const everythingFailed = failed === results.length;
+      // Every request refused with a 403 is the expected shape of "this account is not on
+      // the app's allowlist" — worth saying plainly instead of stacking up API detail.
+      let error: string;
+      if (everythingFailed && firstStatus === 403) {
+        error =
+          'Spotify refused this account. This app is in Development Mode, so only accounts added to it by hand can sign in — ask whoever runs it to add the email on your Spotify account, then connect again.';
+      } else if (everythingFailed) {
+        error = `Every Spotify request failed (${firstError}). Nothing to spin yet.`;
+      } else {
+        error = 'Spotify returned no listening history for this account yet. Play some music, then connect again.';
+      }
+      patch({ phase: 'setup', error });
       return;
     }
 
+    resetLookups();
     patch({
       ...CLEARED,
       pool,
       phase: 'dial',
-      signedIn: true,
+      source: 'spotify',
       error: failed
         ? `${failed} of ${results.length} history requests failed (${firstError}). Spinning on what came back.`
         : '',
     });
-  }, [patch]);
+  }, [patch, resetLookups]);
 
   /* ------------------------------------------------------------------- auth */
 
@@ -174,7 +224,7 @@ export function useSpinTheDial() {
 
     const configured = configuredClientId();
     const clientId = configured || savedClientId();
-    const base = { clientId, configured: !!configured, redirectUri: redirectUri() };
+    const base = { clientId, configured: !!configured, lastfmUser: savedLastfmUser() };
 
     const params = new URLSearchParams(window.location.search);
     const denied = params.get('error');
@@ -232,8 +282,39 @@ export function useSpinTheDial() {
     session.current = null;
     window.clearTimeout(spinTimer.current);
     window.clearTimeout(rollTimer.current);
-    patch({ ...CLEARED, phase: 'setup', signedIn: false, error: '' });
-  }, [patch]);
+    resetLookups();
+    patch({ ...CLEARED, phase: 'setup', source: null, error: '' });
+  }, [patch, resetLookups]);
+
+  const connectLastfm = useCallback(async () => {
+    const user = state.lastfmUser.trim();
+    if (!user) {
+      fail('Enter a Last.fm username first.');
+      return;
+    }
+    patch({ phase: 'loading', error: '' });
+
+    try {
+      const { pool, failed, firstError } = await loadLastfmPool(user);
+      if (!pool.length) {
+        patch({ phase: 'setup', error: `Last.fm has no listening history for “${user}” yet.` });
+        return;
+      }
+      rememberLastfmUser(user);
+      resetLookups();
+      patch({
+        ...CLEARED,
+        pool,
+        phase: 'dial',
+        source: 'lastfm',
+        error: failed
+          ? `${failed} of 4 Last.fm requests failed (${firstError}). Spinning on what came back.`
+          : '',
+      });
+    } catch (error) {
+      patch({ phase: 'setup', error: message(error) });
+    }
+  }, [fail, patch, resetLookups, state.lastfmUser]);
 
   /* ------------------------------------------------------------------- spin */
 
@@ -288,6 +369,10 @@ export function useSpinTheDial() {
     const pick = undrawn[Math.floor(Math.random() * undrawn.length)];
     const nextDrawn = [...drawn, pick.id];
 
+    // Start now, not on reveal: the lookup then overlaps the spin animation, so the image is
+    // usually fetched and decoded by the time the card appears.
+    lookUp(pick);
+
     const commit = () => {
       patch({ artist: pick, phase: 'reveal', spinning: false, drawn: nextDrawn, error: '' });
     };
@@ -303,7 +388,7 @@ export function useSpinTheDial() {
     startRoll(available, pick, ms);
     window.clearTimeout(spinTimer.current);
     spinTimer.current = window.setTimeout(commit, ms + 90);
-  }, [available, fail, patch, startRoll, state.drawn, state.spinning]);
+  }, [available, fail, lookUp, patch, startRoll, state.drawn, state.spinning]);
 
   const spinAgain = useCallback(() => {
     window.clearTimeout(spinTimer.current);
@@ -332,13 +417,14 @@ export function useSpinTheDial() {
   const play = useCallback(() => {
     const artist = state.artist;
     if (!artist) return;
-    const target = artistTargets(artist.id);
-    openSpotify(target.uri, target.web);
-  }, [state.artist]);
+    // A resolved ID means the real artist page; searching by name is the last resort.
+    const spotifyId = artist.spotifyId || found[artist.id]?.spotifyId;
+    openSpotify(spotifyId ? artistTargets(spotifyId) : searchTargets(artist.name));
+  }, [found, state.artist]);
 
   /* ------------------------------------------------------------------- view */
 
-  const connected = state.signedIn;
+  const connected = state.source !== null;
   const undrawn = available.filter((a) => !state.drawn.includes(a.id)).length;
   const artist = state.artist;
 
@@ -357,7 +443,12 @@ export function useSpinTheDial() {
   if (state.phase === 'loading') {
     leadLine = 'Building your pool from top charts and recent plays…';
   } else if (!connected) {
-    leadLine = 'A random artist out of everything you actually listen to. Connect Spotify to load your artists.';
+    // Only advertise the second route when this deploy actually has a Last.fm key.
+    leadLine = LASTFM_API_KEY
+      ? 'A random artist out of everything you actually listen to. Connect Spotify, or hand it a Last.fm username.'
+      : 'A random artist out of everything you actually listen to. Connect Spotify to load your artists.';
+  } else if (state.source === 'lastfm') {
+    leadLine = `Spinning from ${available.length} artists in ${state.lastfmUser}'s Last.fm history.`;
   } else {
     leadLine = `Spinning from ${available.length} artists you actually listen to.`;
   }
@@ -382,7 +473,8 @@ export function useSpinTheDial() {
     setup: {
       clientId: state.clientId,
       configured: state.configured,
-      redirectUri: state.redirectUri,
+      lastfmAvailable: !!LASTFM_API_KEY,
+      lastfmUser: state.lastfmUser,
     },
 
     dial: {
@@ -398,17 +490,21 @@ export function useSpinTheDial() {
 
     reveal: {
       artist,
-      imageUrl: artistImage(artist),
-      genresLine: artist?.genres.length
-        ? artist.genres.slice(0, 4).join(' · ')
-        : 'no genres tagged for this artist',
+      imageUrl: artistImage(artist) || (artist ? found[artist.id]?.image ?? '' : ''),
+      // Empty when untagged, so the reveal can leave the line out rather than apologise for it.
+      genresLine: artist?.genres.length ? artist.genres.slice(0, 4).join(' · ') : '',
       recencyLine,
       playHint: 'Opens spotify',
-      launchNote: 'Opens their page in Spotify, where you can press play on anything of theirs.',
+      launchNote:
+        artist && !(artist.spotifyId || found[artist.id]?.spotifyId)
+          ? 'Opens a Spotify search for them: this artist could not be matched to a Spotify page, so the search box is the honest answer.'
+          : 'Opens their page in Spotify, where you can press play on anything of theirs.',
     },
 
     actions: {
       setClientId: (clientId: string) => patch({ clientId, error: '' }),
+      setLastfmUser: (lastfmUser: string) => patch({ lastfmUser, error: '' }),
+      connectLastfm,
       useDifferentId: () => patch({ configured: false, clientId: '', error: '' }),
       connect,
       disconnect,

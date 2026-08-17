@@ -81,9 +81,26 @@ export function redirectUri(): string {
   return window.location.origin + window.location.pathname;
 }
 
-/** The client URI and web-player URL for an artist. */
-export function artistTargets(id: string): { uri: string; web: string } {
+export interface LaunchTarget {
+  /** Web-player URL. Always present. */
+  web: string;
+  /** Desktop-client URI, tried first when there is one worth trying. */
+  uri?: string;
+}
+
+/** An artist, by ID: the precise case, and what Play artist uses whenever the ID is known. */
+export function artistTargets(id: string): LaunchTarget {
   return { uri: `spotify:artist:${id}`, web: `https://open.spotify.com/artist/${id}` };
+}
+
+/**
+ * Last resort for an artist whose Spotify ID could not be established. Web URL only, on
+ * purpose: the desktop client takes `spotify:search:<query>` but ignores the query and lands on
+ * its recent-searches page, so handing it over would be worse than not trying. The web route
+ * does perform the search.
+ */
+export function searchTargets(query: string): LaunchTarget {
+  return { web: `https://open.spotify.com/search/${encodeURIComponent(query)}` };
 }
 
 /**
@@ -225,9 +242,9 @@ export class SpotifySession {
     }
     if (res.status === 403) {
       // Do not assume the cause. A 403 on one endpoint while others work is usually the
-      // request, not the account — Spotify's own message is the useful part.
+      // request; a 403 on all of them is usually Development Mode's allowlist.
       throw new SpotifyError(
-        `Spotify returned 403 for ${path}${await detail(res)}. If every request fails, your account needs adding to the app’s user list (Development Mode allows 25).`,
+        `Spotify returned 403 for ${path}${await detail(res)}. A Development Mode app only works for accounts added under User Management, and only while its owner has Spotify Premium.`,
         403,
       );
     }

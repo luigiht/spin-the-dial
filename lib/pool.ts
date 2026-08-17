@@ -9,8 +9,13 @@ import type {
 
 /** An artist on the dial, tagged with how recently it turned up in your history. */
 export interface PoolArtist {
+  /** Unique within the pool. A Spotify artist ID, or `lastfm:<name>` from Last.fm. */
   id: string;
   name: string;
+  /** Present only for Spotify-sourced artists; Last.fm cannot supply one. */
+  spotifyId?: string;
+  /** MusicBrainz ID, when the source gave one. Used to find the official Spotify image. */
+  mbid?: string;
   genres: string[];
   images: SpotifyImage[];
   /** Appeared in the last 50 played tracks. */
@@ -34,6 +39,9 @@ export interface PoolResult {
   failed: number;
   /** Message from the first rejection, for reporting a partial load. */
   firstError: string;
+  /** HTTP status of the first rejection, when Spotify gave one. Lets the caller tell an
+   *  allowlist refusal apart from anything else that went wrong. */
+  firstStatus?: number;
 }
 
 /**
@@ -46,6 +54,7 @@ export function buildPool(
   const byId = new Map<string, PoolArtist>();
   let failed = 0;
   let firstError = '';
+  let firstStatus: number | undefined;
 
   const add = (artist: SpotifyArtist | undefined | null, flags: { recent?: boolean; shortTerm?: boolean }) => {
     if (!artist || !artist.id) return;
@@ -59,6 +68,7 @@ export function buildPool(
     }
     byId.set(artist.id, {
       id: artist.id,
+      spotifyId: artist.id,
       name: artist.name,
       genres: artist.genres ?? [],
       images: artist.images ?? [],
@@ -70,7 +80,10 @@ export function buildPool(
   results.forEach((result, index) => {
     if (result.status !== 'fulfilled') {
       failed++;
-      if (!firstError) firstError = result.reason?.message || 'request failed';
+      if (!firstError) {
+        firstError = result.reason?.message || 'request failed';
+        firstStatus = result.reason?.status;
+      }
       return;
     }
     // 0..2 are the top-artist time ranges (short, medium, long); 3 is recently-played.
@@ -85,7 +98,7 @@ export function buildPool(
     });
   });
 
-  return { pool: Array.from(byId.values()), failed, firstError };
+  return { pool: Array.from(byId.values()), failed, firstError, firstStatus };
 }
 
 /** The artists still eligible for the next spin. */

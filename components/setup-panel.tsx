@@ -14,7 +14,6 @@ export function SetupPanel({ setup, actions }: SetupPanelProps) {
     <section className={styles.section}>
       {setup.configured ? (
         <div className={styles.field}>
-          <span className={styles.eyebrow}>Ready — app configured</span>
           <span className={styles.readyNote}>
             Sign in with your own Spotify account. Your listening history and token stay in your browser only.
           </span>
@@ -37,15 +36,17 @@ export function SetupPanel({ setup, actions }: SetupPanelProps) {
               onChange={(event) => actions.setClientId(event.target.value)}
             />
             <span className={styles.hint}>
-              Register an app in the Spotify Developer Dashboard with the redirect URI below, add your own account
-              under User Management, then paste the Client ID. Or set it once for everyone in
-              NEXT_PUBLIC_SPOTIFY_CLIENT_ID. Scopes: user-top-read, user-read-recently-played.
+              Register an app in the{' '}
+              <a
+                className={styles.hintLink}
+                href="https://developer.spotify.com/dashboard"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Spotify Developer Dashboard
+              </a>
+              , add your own account under User Management, then paste the Client ID.
             </span>
-          </div>
-
-          <div className={styles.fieldTight}>
-            <span className={styles.eyebrow}>Redirect URI to register</span>
-            <code className={styles.code}>{setup.redirectUri || '…'}</code>
           </div>
         </>
       )}
@@ -54,8 +55,43 @@ export function SetupPanel({ setup, actions }: SetupPanelProps) {
         <button type="button" className={styles.primary} onClick={() => void actions.connect()}>
           Connect Spotify
         </button>
-        <span className={styles.footNote}>Token kept in memory only</span>
       </div>
+
+      {setup.lastfmAvailable ? (
+        <div className={styles.alternative}>
+          <span className={styles.divider}>or</span>
+
+          <div className={styles.field}>
+            <span className={styles.eyebrow}>Use a Last.fm username</span>
+            <form
+              className={styles.inlineForm}
+              onSubmit={(event) => {
+                event.preventDefault();
+                void actions.connectLastfm();
+              }}
+            >
+              <input
+                type="text"
+                className={styles.input}
+                spellCheck={false}
+                autoComplete="username"
+                autoCapitalize="none"
+                aria-label="Last.fm username"
+                placeholder="username"
+                value={setup.lastfmUser}
+                onChange={(event) => actions.setLastfmUser(event.target.value)}
+              />
+              <button type="submit" className={styles.ghostPill}>
+                Load
+              </button>
+            </form>
+            <span className={styles.hint}>
+              No sign-in, no password — a public Last.fm profile is read straight from your browser.
+              Genres are Spotify-only, so the filter chips stay hidden.
+            </span>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

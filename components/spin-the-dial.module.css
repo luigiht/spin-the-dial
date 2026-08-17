@@ -118,11 +118,6 @@ button:disabled {
   gap: 9px;
 }
 
-.fieldTight {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
 
 .eyebrow {
   font-size: 10.5px;
@@ -175,18 +170,18 @@ button:disabled {
   color: #7c7c7c;
 }
 
-.code {
-  display: block;
-  padding: 13px 15px;
-  background: #000;
-  border: 1px solid #242424;
-  border-radius: 14px;
+/* A shade brighter than the hint around it, so it reads as a link without shouting. */
+.hintLink {
   color: #cfcfcf;
-  font-family: inherit;
-  font-size: 12.5px;
-  word-break: break-all;
-  line-height: 1.5;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 150ms ease;
 }
+
+.hintLink:hover {
+  color: #ffffff;
+}
+
 
 .actions {
   display: flex;
@@ -213,6 +208,58 @@ button:disabled {
 
 .primary:active {
   transform: scale(0.99);
+}
+
+/* The second way in, kept clearly subordinate to Connect Spotify. */
+.alternative {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #5d5d5d;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #242424;
+}
+
+.inlineForm {
+  display: flex;
+  gap: 8px;
+}
+
+.inlineForm .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.ghostPill {
+  flex: none;
+  padding: 15px 22px;
+  border: 1px solid #2b2b2b;
+  border-radius: 999px;
+  background: transparent;
+  color: #bdbdbd;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.ghostPill:hover {
+  background: #151515;
+  color: #f2f2f2;
 }
 
 .footNote {
@@ -395,23 +442,32 @@ button:disabled {
   background-position: center;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  /* The name is the card's only child, so pin it to the bottom directly. */
+  justify-content: flex-end;
   padding: 20px;
 }
 
-.cardLabel {
-  font-size: 10.5px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: #5d5d5d;
-}
-
-/* Keeps the name pinned to the bottom once a real photo is in place. */
-.cardLabelHidden {
-  color: transparent;
+/* Real photography is often bright at the bottom — snow, sky, pale press shots — and a text
+ * shadow alone does not hold white type against it. Only applied when there is a photo, so the
+ * striped placeholder stays flat. */
+.cardPhoto::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(11, 11, 11, 0.85) 0%,
+    rgba(11, 11, 11, 0.45) 30%,
+    rgba(11, 11, 11, 0) 58%
+  );
+  pointer-events: none;
 }
 
 .artistName {
+  /* Above the scrim: both are positioned, so without this the ::after would paint over the
+     name and grey it out. */
+  position: relative;
+  z-index: 1;
   margin: 0;
   font-size: clamp(34px, 9vw, 56px);
   font-weight: 700;
