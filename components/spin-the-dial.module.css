@@ -1,0 +1,536 @@
+/* One sheet for the whole app: it is a single screen with three faces. */
+
+.page {
+  min-height: 100vh;
+  background: #0b0b0b;
+  color: #f2f2f2;
+  display: flex;
+  justify-content: center;
+  padding: 34px 20px 30px;
+}
+
+.shell {
+  width: 100%;
+  max-width: 470px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* --------------------------------------------------------------- chrome */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.brand {
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* Real text for the heading, since the wordmark itself is a graphic. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Scales down on narrow screens so it never crowds the Disconnect button. */
+.logo {
+  display: block;
+  height: clamp(21px, 5.5vw, 26px);
+  width: auto;
+}
+
+.disconnect {
+  padding: 9px 17px;
+  border: 1px solid #313131;
+  border-radius: 999px;
+  background: transparent;
+  color: #9c9c9c;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.disconnect:hover {
+  color: #f2f2f2;
+  border-color: #6a6a6a;
+}
+
+.lead {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.45;
+  color: #8d8d8d;
+  text-wrap: pretty;
+}
+
+.alert {
+  background: #171717;
+  border: 1px solid #333;
+  border-radius: 14px;
+  padding: 13px 15px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #dcdcdc;
+}
+
+/* Every interactive element keeps a visible ring for keyboard users. */
+.page :focus-visible {
+  outline: 2px solid #f2f2f2;
+  outline-offset: 3px;
+}
+
+.primary:focus-visible,
+.spinButton:focus-visible,
+.launchPrimary:focus-visible {
+  outline-offset: 4px;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+/* ---------------------------------------------------------------- setup */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.fieldTight {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.eyebrow {
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #6e6e6e;
+}
+
+.readyNote {
+  font-size: 15px;
+  line-height: 1.55;
+  color: #cfcfcf;
+}
+
+.linkButton {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #7c7c7c;
+  font-size: 12.5px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.linkButton:hover {
+  color: #f2f2f2;
+}
+
+.input {
+  width: 100%;
+  padding: 17px 18px;
+  border: 1px solid #2b2b2b;
+  border-radius: 16px;
+  background: #151515;
+  font-size: 15px;
+  color: #f2f2f2;
+  outline: none;
+  transition: border-color 150ms ease;
+}
+
+.input:focus {
+  border-color: #f2f2f2;
+}
+
+.hint {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #7c7c7c;
+}
+
+.code {
+  display: block;
+  padding: 13px 15px;
+  background: #000;
+  border: 1px solid #242424;
+  border-radius: 14px;
+  color: #cfcfcf;
+  font-family: inherit;
+  font-size: 12.5px;
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.primary {
+  width: 100%;
+  padding: 22px;
+  border: none;
+  border-radius: 20px;
+  background: #f2f2f2;
+  color: #0b0b0b;
+  font-size: 21px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 150ms ease, transform 130ms ease;
+}
+
+.primary:hover {
+  background: #ffffff;
+}
+
+.primary:active {
+  transform: scale(0.99);
+}
+
+.footNote {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #5d5d5d;
+  text-align: center;
+}
+
+/* ----------------------------------------------------------------- dial */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  flex: 1;
+}
+
+.rollWrap {
+  flex: 1;
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding: 10px 0 4px;
+}
+
+.rollWindow {
+  width: 100%;
+  aspect-ratio: 1.55;
+  border-radius: 22px;
+  background: repeating-linear-gradient(90deg, #1b1b1b 0 14px, #131313 14px 28px);
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  overflow: hidden;
+}
+
+.rollName {
+  font-size: clamp(26px, 7.5vw, 40px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  color: #b9b9b9;
+  text-align: center;
+}
+
+.spinningLabel {
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #5d5d5d;
+}
+
+.narrow {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 19px 20px;
+  border: 1px solid #262626;
+  border-radius: 18px;
+  background: #141414;
+  color: #f2f2f2;
+  font-size: 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.toggle:hover {
+  border-color: #4a4a4a;
+}
+
+.toggleState {
+  flex: none;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #6e6e6e;
+}
+
+.toggleStateOn {
+  color: #f2f2f2;
+}
+
+.chipGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  padding: 11px 17px;
+  border: 1px solid #262626;
+  border-radius: 999px;
+  background: #141414;
+  color: #cfcfcf;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 150ms ease;
+}
+
+.chip:hover {
+  border-color: #6a6a6a;
+}
+
+.chipActive {
+  border-color: #f2f2f2;
+  background: #f2f2f2;
+  color: #0b0b0b;
+}
+
+.note {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #6e6e6e;
+}
+
+.spinBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.spinButton {
+  width: 100%;
+  padding: 26px;
+  border: none;
+  border-radius: 22px;
+  background: #f2f2f2;
+  color: #0b0b0b;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: background 150ms ease, transform 130ms ease;
+}
+
+.spinButton:hover {
+  background: #ffffff;
+}
+
+.spinButton:active {
+  transform: scale(0.99);
+}
+
+/* --------------------------------------------------------------- reveal */
+
+.card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 22px;
+  overflow: hidden;
+  background-color: #131313;
+  background-image: repeating-linear-gradient(45deg, #1a1a1a 0 10px, #131313 10px 20px);
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+}
+
+.cardLabel {
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #5d5d5d;
+}
+
+/* Keeps the name pinned to the bottom once a real photo is in place. */
+.cardLabelHidden {
+  color: transparent;
+}
+
+.artistName {
+  margin: 0;
+  font-size: clamp(34px, 9vw, 56px);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+  color: #ffffff;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.75);
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.genres {
+  font-size: 12.5px;
+  letter-spacing: 0.06em;
+  color: #8d8d8d;
+}
+
+.recency {
+  font-size: 16px;
+  line-height: 1.5;
+  color: #cfcfcf;
+}
+
+.launchBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.launchPrimary {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 22px 20px;
+  border: none;
+  border-radius: 18px;
+  background: #f2f2f2;
+  color: #0b0b0b;
+  font-size: 17px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  transition: background 150ms ease, transform 130ms ease;
+}
+
+.launchPrimary:hover {
+  background: #ffffff;
+}
+
+.launchPrimary:active {
+  transform: scale(0.995);
+}
+
+.launchHint {
+  font-size: 10.5px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #4d4d4d;
+  text-align: right;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.pill {
+  padding: 16px;
+  border: 1px solid #262626;
+  border-radius: 999px;
+  background: transparent;
+  color: #dcdcdc;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.pill:hover {
+  background: #151515;
+}
+
+.launchNote {
+  font-size: 11px;
+  line-height: 1.65;
+  letter-spacing: 0.04em;
+  color: #5d5d5d;
+  text-align: center;
+}
+
+/* --------------------------------------------------------------- footer */
+
+.footer {
+  margin-top: auto;
+  padding-top: 18px;
+  font-size: 11px;
+  line-height: 1.7;
+  letter-spacing: 0.04em;
+  color: #5d5d5d;
+  text-align: center;
+  text-wrap: pretty;
+}
+
+.footerLink {
+  color: #8d8d8d;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 150ms ease;
+}
+
+.footerLink:hover {
+  color: #f2f2f2;
+}
