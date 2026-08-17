@@ -1,0 +1,28 @@
+{
+  "name": "spin-the-dial",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Connect Spotify, build a pool of artists you actually listen to, spin a dial, and launch that artist in Spotify.",
+  "license": "ISC",
+  "scripts": {
+    "dev": "next dev -H 127.0.0.1 -p 3000",
+    "build": "next build",
+    "start": "next start -H 127.0.0.1 -p 3000",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "^16.3.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}

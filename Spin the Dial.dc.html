@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  html, body { margin: 0; padding: 0; background: #0b0b0b; }
+  * { box-sizing: border-box; }
+  a { color: #ffffff; text-underline-offset: 3px; }
+  a:hover { color: #b6b6b6; }
+  input, button { font: inherit; }
+  ::placeholder { color: #5a5a5a; }
+  @media (prefers-reduced-motion: reduce) { * { transition-duration: 0.01ms !important; } }
+</style>
+<script src="./config.js"></script>
+</helmet>
+<div style="min-height: 100vh; background: #0b0b0b; color: #f2f2f2; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; display: flex; justify-content: center; padding: 34px 20px 30px;">
+  <div style="width: 100%; max-width: 470px; display: flex; flex-direction: column; gap: 22px;">
+
+    <header style="display: flex; align-items: center; justify-content: space-between; gap: 14px;">
+      <div style="display: flex; align-items: center; gap: 11px;">
+        <span style="width: 11px; height: 11px; border-radius: 50%; background: #f2f2f2; flex: none;"></span>
+        <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;">Spin the dial</span>
+      </div>
+      <sc-if value="{{ showDisconnect }}" hint-placeholder-val="{{ false }}">
+        <button type="button" onClick="{{ onDisconnect }}" style="padding: 9px 17px; border: 1px solid #313131; border-radius: 999px; background: transparent; color: #9c9c9c; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer; transition: color 150ms ease, border-color 150ms ease;" style-hover="color: #f2f2f2; border-color: #6a6a6a;" style-focus="outline: 2px solid #f2f2f2; outline-offset: 3px;">Disconnect</button>
+      </sc-if>
+    </header>
+
+    <p style="margin: 0; font-size: 19px; line-height: 1.45; color: #8d8d8d; text-wrap: pretty;">{{ leadLine }}</p>
+
+    <sc-if value="{{ errorText }}" hint-placeholder-val="{{ false }}">
+      <div role="alert" style="background: #171717; border: 1px solid #333; border-radius: 14px; padding: 13px 15px; font-size: 13px; line-height: 1.55; color: #dcdcdc;">{{ errorText }}</div>
+    </sc-if>
+
+    <sc-if value="{{ showSetup }}" hint-placeholder-val="{{ true }}">
+      <section style="display: flex; flex-direction: column; gap: 20px;">
+        <sc-if value="{{ showConfigured }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 9px;">
+            <span style="font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: #6e6e6e;">Ready — app configured</span>
+            <span style="font-size: 15px; line-height: 1.55; color: #cfcfcf;">Sign in with your own Spotify account. Your listening history and token stay in your browser only.</span>
+            <button type="button" onClick="{{ onOverride }}" style="align-self: flex-start; padding: 0; border: none; background: none; color: #7c7c7c; font-size: 12.5px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer;" style-hover="color: #f2f2f2;" style-focus="outline: 2px solid #f2f2f2; outline-offset: 3px;">Use a different Client ID</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ showIdField }}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-direction: column; gap: 9px;">
+          <span style="font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: #6e6e6e;">Paste your Spotify Client ID here ↓</span>
+          <input type="text" spellcheck="false" autocomplete="off" aria-label="Spotify Client ID" placeholder="3f9a2c1b4d5e6f708192a3b4c5d6e7f8" value="{{ clientIdValue }}" onInput="{{ onClientId }}" style="width: 100%; padding: 17px 18px; border: 1px solid #2b2b2b; border-radius: 16px; background: #151515; font-size: 15px; color: #f2f2f2; outline: none; transition: border-color 150ms ease;" style-focus="border-color: #f2f2f2;" />
+          <span style="font-size: 12.5px; line-height: 1.6; color: #7c7c7c;">Register an app in the Spotify Developer Dashboard with the redirect URI below, add your own account under User Management, then paste the Client ID. Or set it once for everyone in config.js. Scopes: user-top-read, user-read-recently-played.</span>
+        </div>
+        </sc-if>
+        <sc-if value="{{ showIdField }}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <span style="font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: #6e6e6e;">Redirect URI to register</span>
+          <code style="display: block; padding: 13px 15px; background: #000; border: 1px solid #242424; border-radius: 14px; color: #cfcfcf; font-family: inherit; font-size: 12.5px; word-break: break-all; line-height: 1.5;">{{ redirectUri }}</code>
+        </div>
+        </sc-if>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <button type="button" onClick="{{ onConnect }}" style="width: 100%; padding: 22px; border: none; border-radius: 20px; background: #f2f2f2; color: #0b0b0b; font-size: 21px; font-weight: 700; cursor: pointer; transition: background 150ms ease, transform 130ms ease;" style-hover="background: #ffffff;" style-active="transform: scale(0.99);" style-focus="outline: 2px solid #f2f2f2; outline-offset: 4px;">Connect Spotify</button>
+          <sc-if value="{{ showDemoButton }}" hint-placeholder-val="{{ false }}">
+            <button type="button" onClick="{{ onDemo }}" style="width: 100%; padding: 15px; border: 1px solid #2b2b2b; border-radius: 999px; background: transparent; color: #bdbdbd; font-size: 14px; cursor: pointer; transition: background 150ms ease;" style-hover="background: #151515; color: #f2f2f2;" style-focus="outline: 2px solid #f2f2f2; outline-offset: 3px;">Try a spin with sample data</button>
+          </sc-if>
+          <span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #5d5d5d; text-align: center;">Token kept in memory only</span>
+        </div>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{ showDial }}" hint-placeholder-val="{{ false }}">
+      <section style="display: flex; flex-direction: column; gap: 26px; flex: 1;">
+        <sc-if value="{{ showRoll }}" hint-placeholder-val="{{ false }}">
+          <div style="flex: 1; min-height: 240px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 10px 0 4px;">
+            <div style="width: 100%; aspect-ratio: 1.55; border-radius: 22px; background: repeating-linear-gradient(90deg, #1b1b1b 0 14px, #131313 14px 28px); display: grid; place-items: center; padding: 22px; overflow: hidden;">
+              <span ref="{{ rollRef }}" style="font-size: clamp(26px, 7.5vw, 40px); font-weight: 700; letter-spacing: -0.025em; line-height: 1.05; color: #b9b9b9; text-align: center;">{{ rollSeed }}</span>
+            </div>
+            <span style="font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: #5d5d5d;">Spinning…</span>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showWheel }}" hint-placeholder-val="{{ true }}">
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 12px; padding: 10px 0;">
+          <span style="font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: #6e6e6e;">Narrow the spin</span>
+          <button type="button" onClick="{{ onToggleForgotten }}" aria-pressed="{{ forgottenOn }}" style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 19px 20px; border: 1px solid #262626; border-radius: 18px; background: #141414; color: #f2f2f2; font-size: 16px; text-align: left; cursor: pointer; transition: border-color 150ms ease, background 150ms ease;" style-hover="border-color: #4a4a4a;" style-focus="outline: 2px solid #f2f2f2; outline-offset: 3px;">
+            <span>Dig up something forgotten</span>
+            <span style="font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: {{ forgottenLabelColor }};">{{ forgottenLabel }}</span>
+          </button>
+          <sc-if value="{{ hasChips }}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <sc-for list="{{ chips }}" as="chip" hint-placeholder-count="5">
+                <button type="button" onClick="{{ chip.onClick }}" aria-pressed="{{ chip.active }}" style="padding: 11px 17px; border: 1px solid {{ chip.border }}; border-radius: 999px; background: {{ chip.bg }}; color: {{ chip.fg }}; font-size: 14px; cursor: pointer; transition: border-color 150ms ease;" style-hover="border-color: #6a6a6a;" style-focus="outline: 2px solid #f2f2f2; outline-offset: 3px;">{{ chip.label }}</button>
+              </sc-for>
+            </div>
+          </sc-if>
+          <span style="font-size: 12.5px; line-height: 1.6; color: #6e6e6e;">{{ narrowNote }}</span>
+        </div>
+        </sc-if>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 4px;">
+          <button type="button" onClick="{{ onSpin }}" disabled="{{ spinDisabled }}" style="width: 100%; padding: 26px; border: none; border-radius: 22px; background: #f2f2f2; color: #0b0b0b; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; cursor: pointer; transition: background 150ms ease, transform 130ms ease;" style-hover="background: #ffffff;" style-active="transform: scale(0.99);" style-focus="outline: 2px solid #f2f2f2; outline-offset: 4px;">{{ spinLabel }}</button>
+          <span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #5d5d5d; text-align: center;">{{ roundLine }}</span>
+        </div>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{ showReveal }}" hint-placeholder-val="{{ false }}">
+      <section style="display: flex; flex-direction: column; gap: 26px; flex: 1;">
+        <div ref="{{ photoRef }}" style="position: relative; width: 100%; aspect-ratio: 1; border-radius: 22px; overflow: hidden; background-color: #131313; background-image: repeating-linear-gradient(45deg, #1a1a1a 0 10px, #131313 10px 20px); background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: space-between; padding: 20px;">
+          <span style="font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: {{ photoLabelColor }};">{{ photoLabel }}</span>
+          <h2 style="margin: 0; font-size: clamp(34px, 9vw, 56px); font-weight: 700; line-height: 1.02; letter-spacing: -0.025em; color: #ffffff; text-shadow: 0 2px 24px rgba(0,0,0,0.75);">{{ artistName }}</h2>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 7px;">
+          <span style="font-size: 12.5px; letter-spacing: 0.06em; color: #8d8d8d;">{{ genresLine }}</span>
+          <span style="font-size: 16px; line-height: 1.5; color: #cfcfcf;">{{ recencyLine }}</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: auto; padding-top: 8px;">
+          <button type="button" onClick="{{ onTopSongs }}" disabled="{{ launchDisabled }}" style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 22px 20px; border: none; border-radius: 18px; background: #f2f2f2; color: #0b0b0b; font-size: 17px; font-weight: 700; text-align: left; cursor: pointer; transition: background 150ms ease, transform 130ms ease;" style-hover="background: #ffffff;" style-active="transform: scale(0.995);" style-focus="outline: 2px solid #f2f2f2; outline-offset: 4px;">
+            <span>Top songs</span>
+            <span style="font-size: 10.5px; font-weight: 400; letter-spacing: 0.14em; text-transform: uppercase; color: #4d4d4d; text-align: right;">{{ topSongsHint }}</span>
+          </button>
+          <button type="button" onClick="{{ onRadio }}" disabled="{{ launchDisabled }}" style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 22px 20px; border: 1px solid #262626; border-radius: 18px; background: #141414; color: #f2f2f2; font-size: 17px; font-weight: 700; text-align: left; cursor: pointer; transition: border-color 150ms ease;" style-hover="border-color: #4a4a4a;" style-focus="outline: 2px solid #f2f2f2; outline-offset: 3px;">
+            <span>Artist radio</span>
+            <span style="font-size: 10.5px; font-weight: 400; letter-spacing: 0.14em; text-transform: uppercase; color: #7c7c7c; text-align: right;">Opens spotify</span>
+          </button>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button type="button" onClick="{{ onSpinAgain }}" style="padding: 16px; border: 1px solid #262626; border-radius: 999px; background: transparent; color: #dcdcdc; font-size: 15px; cursor: pointer; transition: background 150ms ease;" style-hover="background: #151515;" style-focus="outline: 2px solid #f2f2f2; outline-offset: 3px;">Spin again</button>
+            <button type="button" onClick="{{ onNotTonight }}" style="padding: 16px; border: 1px solid #262626; border-radius: 999px; background: transparent; color: #dcdcdc; font-size: 15px; cursor: pointer; transition: background 150ms ease;" style-hover="background: #151515;" style-focus="outline: 2px solid #f2f2f2; outline-offset: 3px;">Not tonight</button>
+          </div>
+          <span style="font-size: 11px; line-height: 1.65; letter-spacing: 0.04em; color: #5d5d5d; text-align: center;">{{ launchNote }}</span>
+        </div>
+      </section>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:470,&quot;height&quot;:900},&quot;spinDuration&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1600,&quot;min&quot;:400,&quot;max&quot;:3500,&quot;step&quot;:100,&quot;unit&quot;:&quot;ms&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Spin&quot;},&quot;showDemo&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Spin&quot;}}">
+const AUTH = 'https://accounts.spotify.com/authorize';
+const TOKEN = 'https://accounts.spotify.com/api/token';
+const API = 'https://api.spotify.com/v1';
+const SCOPES = 'user-top-read user-read-recently-played';
+const CID_KEY = 'spinthedial.clientId';
+const V_KEY = 'spinthedial.verifier';
+const S_KEY = 'spinthedial.state';
+const STOP = ['music', 'and', 'the', 'pop', 'contemporary', 'modern'];
+
+const DEMO = [
+  { id: 'demo1', name: 'Alice Coltrane', genres: ['spiritual jazz', 'free jazz'], images: [], _recent: false, _short: false },
+  { id: 'demo2', name: 'Yo La Tengo', genres: ['indie rock', 'noise pop'], images: [], _recent: true, _short: true },
+  { id: 'demo3', name: 'Ryuichi Sakamoto', genres: ['ambient', 'modern classical'], images: [], _recent: false, _short: false },
+  { id: 'demo4', name: 'Little Dragon', genres: ['nu-disco', 'electro soul'], images: [], _recent: true, _short: false },
+  { id: 'demo5', name: 'Sault', genres: ['alternative r&b', 'post-punk soul'], images: [], _recent: false, _short: true },
+  { id: 'demo6', name: 'Nala Sinephro', genres: ['spiritual jazz', 'ambient'], images: [], _recent: false, _short: false },
+  { id: 'demo7', name: 'Jessica Pratt', genres: ['folk', 'psych folk'], images: [], _recent: false, _short: false },
+  { id: 'demo8', name: 'Theo Parrish', genres: ['deep house', 'detroit house'], images: [], _recent: true, _short: false }
+];
+
+class Component extends DCLogic {
+  state = {
+    clientId: '',
+    phase: 'setup',
+    error: '',
+    pool: [],
+    artist: null,
+    tracks: [],
+    spinning: false,
+    demo: false,
+    forgotten: false,
+    genre: null,
+    excluded: [],
+    drawn: [],
+    override: false
+  };
+
+  token = null;
+  refreshToken = null;
+  expiresAt = 0;
+  angle = 0;
+  dialRef = React.createRef();
+  photoRef = React.createRef();
+  rollRef = React.createRef();
+
+  get reduced() { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  get isMobile() { return /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent); }
+  get framed() { try { return window.top !== window.self; } catch (e) { return true; } }
+  get redirectUri() { return window.location.origin + window.location.pathname; }
+
+  configuredId() {
+    const cfg = window.SPIN_THE_DIAL_CONFIG || {};
+    if (cfg.clientId && String(cfg.clientId).trim()) return String(cfg.clientId).trim();
+    const meta = document.querySelector('meta[name="spotify-client-id"]');
+    if (meta && meta.content && meta.content.trim()) return meta.content.trim();
+    const q = new URLSearchParams(window.location.search).get('client_id');
+    if (q && q.trim()) return q.trim();
+    return '';
+  }
+
+  componentDidMount() {
+    const configured = this.configuredId();
+    let saved = configured;
+    try { if (!configured) saved = localStorage.getItem(CID_KEY) || ''; } catch (e) {}
+    this.configured = !!configured;
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const err = params.get('error');
+    if (err) {
+      this.setState({ clientId: saved, error: 'Spotify declined the sign-in: ' + err + '. Check the redirect URI matches exactly, then try again.' });
+      this.cleanUrl();
+      return;
+    }
+    if (code) {
+      this.setState({ clientId: saved, phase: 'loading' });
+      this.exchange(code, saved, params.get('state'));
+      return;
+    }
+    this.setState({ clientId: saved });
+  }
+
+  componentDidUpdate() {
+    const el = this.photoRef.current;
+    if (!el) return;
+    const want = this.currentImage ? 'url("' + this.currentImage + '")' : 'repeating-linear-gradient(45deg, #1a1a1a 0 10px, #131313 10px 20px)';
+    if (el.style.backgroundImage !== want) el.style.backgroundImage = want;
+  }
+
+  componentWillUnmount() { clearTimeout(this.timer); clearTimeout(this.rollTimer); }
+
+  cleanUrl() { try { window.history.replaceState({}, '', this.redirectUri); } catch (e) {} }
+
+  rand(n) {
+    const a = new Uint8Array(n);
+    crypto.getRandomValues(a);
+    return Array.from(a, b => 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[b % 62]).join('');
+  }
+
+  async challenge(verifier) {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+    let s = '';
+    new Uint8Array(digest).forEach(b => { s += String.fromCharCode(b); });
+    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  async login() {
+    const id = (this.state.clientId || '').trim();
+    if (!id) { this.setState({ error: 'Paste your Spotify Client ID first, or set one in config.js.' }); return; }
+    if (!this.configured) { try { localStorage.setItem(CID_KEY, id); } catch (e) {} }
+    const verifier = this.rand(64);
+    const st = this.rand(16);
+    try {
+      sessionStorage.setItem(V_KEY, verifier);
+      sessionStorage.setItem(S_KEY, st);
+    } catch (e) {
+      this.setState({ error: 'This browser is blocking session storage, which PKCE needs to finish the sign-in.' });
+      return;
+    }
+    const url = AUTH + '?' + new URLSearchParams({
+      client_id: id,
+      response_type: 'code',
+      redirect_uri: this.redirectUri,
+      code_challenge_method: 'S256',
+      code_challenge: await this.challenge(verifier),
+      scope: SCOPES,
+      state: st
+    }).toString();
+    if (this.framed) {
+      window.open(url, '_blank', 'noopener');
+      this.setState({ error: 'Spotify sign-in cannot run inside a preview frame. Open this page in its own browser tab (at the registered redirect URI) and connect there.' });
+      return;
+    }
+    window.location.assign(url);
+  }
+
+  async exchange(code, id, returnedState) {
+    let verifier = '', expected = '';
+    try {
+      verifier = sessionStorage.getItem(V_KEY) || '';
+      expected = sessionStorage.getItem(S_KEY) || '';
+      sessionStorage.removeItem(V_KEY);
+      sessionStorage.removeItem(S_KEY);
+    } catch (e) {}
+    this.cleanUrl();
+    if (!verifier) {
+      this.setState({ phase: 'setup', error: 'Lost the PKCE verifier for this sign-in (new tab or cleared session). Press Connect again.' });
+      return;
+    }
+    if (expected && returnedState && expected !== returnedState) {
+      this.setState({ phase: 'setup', error: 'State mismatch on the callback — sign-in aborted for safety. Try again.' });
+      return;
+    }
+    try {
+      const res = await fetch(TOKEN, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: id, grant_type: 'authorization_code', code: code,
+          redirect_uri: this.redirectUri, code_verifier: verifier
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error_description || data.error || 'token request failed');
+      this.setToken(data);
+      this.loadPool();
+    } catch (e) {
+      this.setState({ phase: 'setup', error: 'Could not exchange the code for a token: ' + e.message });
+    }
+  }
+
+  setToken(data) {
+    this.token = data.access_token;
+    if (data.refresh_token) this.refreshToken = data.refresh_token;
+    this.expiresAt = Date.now() + (data.expires_in || 3600) * 1000;
+  }
+
+  async refresh() {
+    if (!this.refreshToken) throw new Error('session expired — connect again');
+    const res = await fetch(TOKEN, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: (this.state.clientId || '').trim(),
+        grant_type: 'refresh_token', refresh_token: this.refreshToken
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error_description || 'refresh failed — connect again');
+    this.setToken(data);
+  }
+
+  async api(path, retry = true) {
+    if (!this.token) throw new Error('not signed in');
+    if (Date.now() > this.expiresAt - 30000) await this.refresh();
+    const res = await fetch(API + path, { headers: { Authorization: 'Bearer ' + this.token } });
+    if (res.status === 401 && retry) { await this.refresh(); return this.api(path, false); }
+    if (res.status === 429) throw new Error('Spotify rate-limited this app. Wait ' + (res.headers.get('Retry-After') || '30') + 's and retry.');
+    if (res.status === 403) throw new Error('Spotify returned 403 for ' + path + '. In Development Mode your account must be added to the app\u2019s user list.');
+    if (!res.ok) throw new Error('Spotify returned ' + res.status + ' for ' + path);
+    return res.json();
+  }
+
+  async loadPool() {
+    this.setState({ phase: 'loading', error: '' });
+    const results = await Promise.allSettled([
+      this.api('/me/top/artists?limit=50&time_range=short_term'),
+      this.api('/me/top/artists?limit=50&time_range=medium_term'),
+      this.api('/me/top/artists?limit=50&time_range=long_term'),
+      this.api('/me/player/recently-played?limit=50')
+    ]);
+    const map = new Map();
+    let failed = 0, firstErr = '';
+    const add = (a, flags) => {
+      if (!a || !a.id) return;
+      const prev = map.get(a.id);
+      if (prev) {
+        prev._recent = prev._recent || !!flags._recent;
+        prev._short = prev._short || !!flags._short;
+        if (!prev.genres && a.genres) prev.genres = a.genres;
+        return;
+      }
+      map.set(a.id, Object.assign({}, a, { _recent: !!flags._recent, _short: !!flags._short }));
+    };
+    results.forEach((r, i) => {
+      if (r.status !== 'fulfilled') {
+        failed++;
+        if (!firstErr) firstErr = (r.reason && r.reason.message) || 'request failed';
+        return;
+      }
+      const items = (r.value && r.value.items) || [];
+      if (i < 3) items.forEach(a => add(a, { _short: i === 0 }));
+      else items.forEach(it => { const t = it && it.track; if (t && t.artists) t.artists.forEach(a => add(a, { _recent: true })); });
+    });
+    const pool = Array.from(map.values());
+    if (!pool.length) {
+      this.setState({
+        phase: 'setup',
+        error: failed === results.length
+          ? 'Every Spotify request failed (' + firstErr + '). Nothing to spin yet.'
+          : 'Spotify returned no listening history for this account yet. Play some music, then connect again.'
+      });
+      return;
+    }
+    this.setState({
+      pool: pool, phase: 'dial', demo: false, drawn: [], excluded: [], genre: null, forgotten: false,
+      error: failed ? failed + ' of 4 history requests failed (' + firstErr + '). Spinning on what came back.' : ''
+    });
+  }
+
+  startDemo() {
+    this.setState({ pool: DEMO, demo: true, phase: 'dial', error: '', drawn: [], excluded: [], genre: null, forgotten: false });
+  }
+
+  disconnect() {
+    this.token = null; this.refreshToken = null; this.expiresAt = 0;
+    this.setState({ phase: 'setup', pool: [], artist: null, tracks: [], demo: false, drawn: [], excluded: [], genre: null, forgotten: false, error: '' });
+  }
+
+  filtered(s) {
+    s = s || this.state;
+    return s.pool.filter(a => {
+      if (s.excluded.indexOf(a.id) > -1) return false;
+      if (s.forgotten && (a._recent || a._short)) return false;
+      if (s.genre && !(a.genres || []).some(g => g.indexOf(s.genre) > -1)) return false;
+      return true;
+    });
+  }
+
+  chipList() {
+    const counts = {};
+    this.state.pool.forEach(a => (a.genres || []).forEach(g => g.split(/[\s-]+/).forEach(w => {
+      if (w.length < 3 || STOP.indexOf(w) > -1) return;
+      counts[w] = (counts[w] || 0) + 1;
+    })));
+    return Object.keys(counts).sort((x, y) => counts[y] - counts[x]).slice(0, 6);
+  }
+
+  tick(when, ctx, gain) {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'square';
+    o.frequency.setValueAtTime(1500, when);
+    g.gain.setValueAtTime(0, when);
+    g.gain.linearRampToValueAtTime(gain, when + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + 0.045);
+    o.connect(g).connect(ctx.destination);
+    o.start(when);
+    o.stop(when + 0.06);
+  }
+
+  clicks(ms) {
+    if (this.reduced) return;
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      this.audio = this.audio || new Ctx();
+      const ctx = this.audio;
+      if (ctx.state === 'suspended') ctx.resume();
+      const n = 22;
+      let t = ctx.currentTime + 0.02;
+      for (let i = 0; i < n; i++) {
+        this.tick(t, ctx, 0.05 * (1 - i / n) + 0.012);
+        t += (ms / 1000) * (0.6 * Math.pow(i / n, 2.2) + 0.012);
+      }
+    } catch (e) {}
+  }
+
+  spin() {
+    if (this.state.spinning) return;
+    const avail = this.filtered();
+    if (!avail.length) {
+      this.setState({ error: 'No artists left under these filters. Clear a filter or press Not tonight fewer times.' });
+      return;
+    }
+    let drawn = this.state.drawn;
+    let undrawn = avail.filter(a => drawn.indexOf(a.id) < 0);
+    if (!undrawn.length) { drawn = []; undrawn = avail; }
+    const pick = undrawn[Math.floor(Math.random() * undrawn.length)];
+    const ms = Math.max(300, Number(this.props.spinDuration) || 1600);
+    const commit = () => {
+      this.setState({ artist: pick, tracks: [], phase: 'reveal', spinning: false, drawn: drawn.concat([pick.id]), error: '' });
+      if (!this.state.demo) this.loadTracks(pick.id);
+    };
+    if (this.reduced) { commit(); return; }
+    this.setState({ spinning: true, phase: 'dial', error: '' });
+    this.angle += 1080 + Math.random() * 720;
+    const el = this.dialRef.current;
+    if (el) {
+      el.style.transition = 'transform ' + ms + 'ms cubic-bezier(0.16, 0.9, 0.16, 1)';
+      el.style.transform = 'rotate(' + this.angle + 'deg)';
+    }
+    this.clicks(ms);
+    this.roll(avail, pick, ms);
+    clearTimeout(this.timer);
+    this.timer = setTimeout(commit, ms + 90);
+  }
+
+  roll(pool, pick, ms) {
+    clearTimeout(this.rollTimer);
+    const names = pool.map(x => x.name).filter(n => n !== pick.name);
+    const start = performance.now();
+    let i = Math.floor(Math.random() * Math.max(1, names.length));
+    const step = () => {
+      const el = this.rollRef.current;
+      const t = Math.min(1, (performance.now() - start) / ms);
+      if (!el) { if (t < 1) this.rollTimer = setTimeout(step, 70); return; }
+      if (t >= 1 || !names.length) { el.textContent = pick.name; return; }
+      i = (i + 1) % names.length;
+      el.textContent = names[i];
+      this.rollTimer = setTimeout(step, 55 + 340 * Math.pow(t, 3.2));
+    };
+    step();
+  }
+
+  spinAgain() {
+    clearTimeout(this.timer);
+    clearTimeout(this.rollTimer);
+    this.setState({ phase: 'dial', artist: null, tracks: [], spinning: false, error: '' });
+  }
+
+  notTonight() {
+    const a = this.state.artist;
+    if (!a) return;
+    this.setState(s => ({ excluded: s.excluded.concat([a.id]), artist: null, tracks: [], phase: 'dial' }));
+  }
+
+  async loadTracks(id) {
+    try {
+      const data = await this.api('/artists/' + id + '/top-tracks?market=from_token');
+      const tracks = (data.tracks || []).slice(0, 5).map(t => ({ id: t.id, name: t.name }));
+      this.setState(s => (s.artist && s.artist.id === id ? { tracks: tracks } : {}));
+    } catch (e) {
+      this.setState({ error: 'Could not load top tracks: ' + e.message });
+    }
+  }
+
+  launch(kind) {
+    const a = this.state.artist;
+    if (!a || this.state.demo) return;
+    let uri = 'spotify:artist:' + a.id;
+    let web = 'https://open.spotify.com/artist/' + a.id;
+    if (kind === 'top' && this.state.tracks[0]) {
+      uri = 'spotify:track:' + this.state.tracks[0].id;
+      web = 'https://open.spotify.com/track/' + this.state.tracks[0].id;
+    }
+    if (this.isMobile || this.framed) { window.open(web, '_blank', 'noopener'); return; }
+    const fallback = setTimeout(() => { if (!document.hidden) window.open(web, '_blank', 'noopener'); }, 1400);
+    try { window.location.href = uri; } catch (e) { clearTimeout(fallback); window.open(web, '_blank', 'noopener'); }
+  }
+
+  renderVals() {
+    const s = this.state;
+    const a = s.artist;
+    const connected = !!this.token || s.demo;
+    const avail = connected ? this.filtered() : [];
+    const undrawn = avail.filter(x => s.drawn.indexOf(x.id) < 0).length;
+    const img = a && a.images && a.images.length ? a.images[a.images.length > 1 ? 1 : 0].url : '';
+    this.currentImage = img;
+    const chipWords = connected ? this.chipList() : [];
+    const genres = a && a.genres && a.genres.length ? a.genres.slice(0, 4).join(' · ') : 'no genres tagged for this artist';
+
+    let lead;
+    if (s.phase === 'loading') lead = 'Building your pool from top charts and recent plays…';
+    else if (!connected) lead = 'A random artist out of everything you actually listen to. Connect Spotify to load your artists.';
+    else if (s.demo) lead = 'Sample spin — ' + avail.length + ' placeholder artists. Connect to spin your own.';
+    else lead = 'Spinning from ' + avail.length + ' artists you actually listen to.';
+
+    let recency;
+    if (!a) recency = '';
+    else if (a._recent) recency = 'In your recent rotation.';
+    else if (a._short) recency = 'One of your top artists this month.';
+    else recency = 'Not in your recent plays — from your longer-term charts.';
+
+    return {
+      clientIdValue: s.clientId,
+      redirectUri: this.redirectUri,
+      leadLine: lead,
+      errorText: s.error,
+      showSetup: s.phase === 'setup' || s.phase === 'loading',
+      showConfigured: !!this.configured && !s.override,
+      showIdField: !this.configured || !!s.override,
+      showDial: s.phase === 'dial',
+      showReveal: s.phase === 'reveal',
+      showDisconnect: connected,
+      showDemoButton: this.props.showDemo !== false,
+      showRoll: s.spinning,
+      showWheel: !s.spinning,
+      rollSeed: avail.length ? avail[0].name : '',
+      rollRef: this.rollRef,
+      spinDisabled: s.spinning,
+      spinLabel: 'Spin',
+      narrowNote: avail.length ? avail.length + ' artists in play' + (s.genre ? ' · genre: ' + s.genre : '') + (s.forgotten ? ' · forgotten only' : '') : 'Nothing left under these filters — clear one to spin.',
+      roundLine: undrawn + ' of ' + avail.length + ' not yet drawn this round',
+      forgottenOn: s.forgotten,
+      forgottenLabel: s.forgotten ? 'On' : 'Off',
+      forgottenLabelColor: s.forgotten ? '#f2f2f2' : '#6e6e6e',
+      hasChips: chipWords.length > 0,
+      chips: chipWords.map(w => ({
+        label: w,
+        active: s.genre === w,
+        bg: s.genre === w ? '#f2f2f2' : '#141414',
+        fg: s.genre === w ? '#0b0b0b' : '#cfcfcf',
+        border: s.genre === w ? '#f2f2f2' : '#262626',
+        onClick: () => this.setState(st => ({ genre: st.genre === w ? null : w, error: '' }))
+      })),
+      artistName: a ? a.name : '',
+      genresLine: genres,
+      recencyLine: recency,
+      photoLabel: img ? '' : 'Artist image',
+      photoLabelColor: img ? 'rgba(0,0,0,0)' : '#5d5d5d',
+      photoRef: this.photoRef,
+      launchDisabled: s.demo,
+      topSongsHint: s.demo ? 'Sample only' : (s.tracks[0] ? s.tracks[0].name : 'Opens spotify'),
+      launchNote: s.demo
+        ? 'Sample mode — connect your Spotify account to open anything.'
+        : 'Radio has no public API endpoint since Spotify\u2019s 2024 access changes: this opens the artist, then use ⋯ → Go to radio.',
+      dialRef: this.dialRef,
+      onClientId: e => this.setState({ clientId: e.target.value, error: '' }),
+      onConnect: () => this.login(),
+      onDemo: () => this.startDemo(),
+      onOverride: () => { this.configured = false; this.setState({ override: true, clientId: '', error: '' }); },
+      onDisconnect: () => this.disconnect(),
+      onSpin: () => this.spin(),
+      onSpinAgain: () => this.spinAgain(),
+      onNotTonight: () => this.notTonight(),
+      onToggleForgotten: () => this.setState(st => ({ forgotten: !st.forgotten, error: '' })),
+      onTopSongs: () => this.launch('top'),
+      onRadio: () => this.launch('radio')
+    };
+  }
+}
+</script>
+</body>
+</html>

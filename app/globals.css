@@ -1,0 +1,42 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #0b0b0b;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  color: #f2f2f2;
+  font-family: var(--font-host-grotesk), 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: #ffffff;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: #b6b6b6;
+}
+
+input,
+button {
+  font: inherit;
+}
+
+::placeholder {
+  color: #5a5a5a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}

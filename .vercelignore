@@ -1,0 +1,7 @@
+# Reference copies of the original single-file app, and the source art the build does not read
+# (logo.svg is already inlined as components/logo.tsx, opengraph.png copied into app/).
+Spin the Dial.dc.html
+support.js
+config.js
+.thumbnail
+uploads/
